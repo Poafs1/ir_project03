@@ -19,15 +19,33 @@ public class PageRanker {
 	 * Where pid_1, pid_2, ..., pid_n are the page IDs of the page having links to page pid_1. 
 	 * You can assume that a page ID is an integer.
 	 */
+	HashMap<Integer, List<Integer>> readDocuments = new HashMap<Integer, List<Integer>>();
+
 	public void loadData(String inputLinkFilename){
 		BufferedReader reader;
+
+//		1 <- 4 5 6
+//		2 <- 1 6
+//		3 <- 1 2 4
+//		4 <- 2 3
+//		5 <- 2 3 4 6
+//		6 <- 1 2 4
+//		int mainPageId = Integer.parseInt(parts[0]);
 
 		try {
 			reader = new BufferedReader(new FileReader(inputLinkFilename));
 			String line = null;
 			while(reader.ready()) {
 				line = reader.readLine();
+				String[] splitLine = line.split(" ");
+				value = Integer.parseInt(splitLine[0]);
+
+				for(int i=1; i<splitLine.length; i++) {
+					keys = Integer.parseInt(splitLine[i]);
+				}
 			}
+
+//			System.out.println(readDocuments);
 			reader.close();
 		} catch (IOException e) {
 			e.printStackTrace();
