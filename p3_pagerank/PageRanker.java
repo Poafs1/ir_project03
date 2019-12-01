@@ -48,7 +48,7 @@ public class PageRanker {
 					}
 				}
 			}
-//			System.out.println(readDocuments);
+
 			reader.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -62,11 +62,12 @@ public class PageRanker {
 	 */
 	public void initialize(){
 		readDocuments.keySet().forEach(k -> {
-			double size = readDocuments.get(k).size();
-			double w = 1 / Math.abs(size);
+			double n = readDocuments.get(k).size();
+			double w = 1 / Math.abs(n);
 			weight.put(k, w);
 		});
-//		System.out.println(weight);
+
+		getPerplexity();
 	}
 	
 	/**
@@ -77,14 +78,23 @@ public class PageRanker {
 //		readDocuments	-> {1=[2, 3, 6], 2=[3, 4, 5, 6], 3=[4, 5], 4=[1, 3, 5, 6], 5=[1], 6=[1, 2, 5]}
 //		weight			-> {1=0.3333333333333333, 2=0.25, 3=0.5, 4=0.25, 5=1.0, 6=0.3333333333333333}
 
-		readDocuments.keySet().forEach(k -> {
+		double pow = 0;
+		for(int i=0; i<readDocuments.keySet().length; i++) {
 			int n = readDocuments.get(k).size();
-			double w = weight.get(k);
-			double pow = -1 * ((w * (Math.log(2) * w)) * n);
-//			double result = Math.pow(2, pow);
-			System.out.println(pow);
-		});
+		}
 
+//		double pow = 0;
+//		readDocuments.keySet().forEach(k -> {
+//			int n = readDocuments.get(k).size();
+//			double w = weight.get(k);
+//			double p = w * (Math.log(2) * w);
+//			pow += p;
+////			double pow = -1 * ((w * (Math.log(2) * w)) * n);
+////			double result = Math.pow(2, pow);
+//		});
+//
+//		double result = Math.pow(2, -1*pow);
+//		System.out.println(result);
 		return 0;
 	}
 	
