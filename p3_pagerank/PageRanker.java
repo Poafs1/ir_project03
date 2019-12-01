@@ -1,7 +1,8 @@
-//Name(s):
-//ID
-//Section
-import java.util.Arrays;
+//Name(s): Rattanavaree Muangamai - Pantita Wang - Prach Yothaprasert
+//ID: 6088092 - 6088219 - 6088234
+//Section: 3
+import java.util.*;
+import java.io.*;
 
 /**
  * This class implements PageRank algorithm on simple graph structure.
@@ -18,7 +19,20 @@ public class PageRanker {
 	 * Where pid_1, pid_2, ..., pid_n are the page IDs of the page having links to page pid_1. 
 	 * You can assume that a page ID is an integer.
 	 */
-	public void loadData(String inputLinkFilename){}
+	public void loadData(String inputLinkFilename){
+		BufferedReader reader;
+
+		try {
+			reader = new BufferedReader(new FileReader(inputLinkFilename));
+			String line = null;
+			while(reader.ready()) {
+				line = reader.readLine();
+			}
+			reader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 	
 	/**
 	 * This method will be called after the graph is loaded into the memory.
@@ -79,7 +93,8 @@ public class PageRanker {
 	{
 	long startTime = System.currentTimeMillis();
 		PageRanker pageRanker =  new PageRanker();
-		pageRanker.loadData("citeseer.dat");
+//		pageRanker.loadData("citeseer.dat");
+		pageRanker.loadData("../p3_testcase/test.dat");
 		pageRanker.initialize();
 		pageRanker.runPageRank("perplexity.out", "pr_scores.out");
 		Integer[] rankedPages = pageRanker.getRankedPages(100);
