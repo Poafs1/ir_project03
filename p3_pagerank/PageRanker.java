@@ -24,28 +24,29 @@ public class PageRanker {
 	public void loadData(String inputLinkFilename){
 		BufferedReader reader;
 
-//		1 <- 4 5 6
-//		2 <- 1 6
-//		3 <- 1 2 4
-//		4 <- 2 3
-//		5 <- 2 3 4 6
-//		6 <- 1 2 4
-//		int mainPageId = Integer.parseInt(parts[0]);
-
 		try {
 			reader = new BufferedReader(new FileReader(inputLinkFilename));
 			String line = null;
 			while(reader.ready()) {
 				line = reader.readLine();
 				String[] splitLine = line.split(" ");
-				value = Integer.parseInt(splitLine[0]);
+
+				int v = Integer.parseInt(splitLine[0]);
 
 				for(int i=1; i<splitLine.length; i++) {
-					keys = Integer.parseInt(splitLine[i]);
+					int k = Integer.parseInt(splitLine[i]);
+					if(readDocuments.containsKey(k)) {
+						List<Integer> values = new ArrayList<Integer>(readDocuments.get(k));
+						values.add(v);
+						readDocuments.put(k, values);
+					} else {
+						List<Integer> values = new ArrayList<Integer>(v);
+						readDocuments.put(k, values);
+					}
 				}
 			}
 
-//			System.out.println(readDocuments);
+			System.out.println(readDocuments);
 			reader.close();
 		} catch (IOException e) {
 			e.printStackTrace();
