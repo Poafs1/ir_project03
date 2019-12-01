@@ -3,6 +3,7 @@
 //Section: 3
 import java.util.*;
 import java.io.*;
+import java.math.*;
 
 /**
  * This class implements PageRank algorithm on simple graph structure.
@@ -19,7 +20,8 @@ public class PageRanker {
 	 * Where pid_1, pid_2, ..., pid_n are the page IDs of the page having links to page pid_1. 
 	 * You can assume that a page ID is an integer.
 	 */
-	HashMap<Integer, List<Integer>> readDocuments = new HashMap<Integer, List<Integer>>();
+	private HashMap<Integer, List<Integer>> readDocuments = new HashMap<Integer, List<Integer>>();
+	private HashMap<Integer, Double> weight = new HashMap<Integer, Double>();
 
 	public void loadData(String inputLinkFilename){
 		BufferedReader reader;
@@ -40,13 +42,13 @@ public class PageRanker {
 						values.add(v);
 						readDocuments.put(k, values);
 					} else {
-						List<Integer> values = new ArrayList<Integer>(v);
+						List<Integer> values = new ArrayList<Integer>();
+						values.add(v);
 						readDocuments.put(k, values);
 					}
 				}
 			}
-
-			System.out.println(readDocuments);
+//			System.out.println(readDocuments);
 			reader.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -58,13 +60,33 @@ public class PageRanker {
 	 * This method initialize the parameters for the PageRank algorithm including
 	 * setting an initial weight to each page.
 	 */
-	public void initialize(){}
+	public void initialize(){
+		readDocuments.keySet().forEach(k -> {
+			double size = readDocuments.get(k).size();
+			double w = 1 / Math.abs(size);
+			weight.put(k, w);
+		});
+//		System.out.println(weight);
+	}
 	
 	/**
 	 * Computes the perplexity of the current state of the graph. The definition
 	 * of perplexity is given in the project specs.
 	 */
-	public double getPerplexity(){return 0;}
+	public double getPerplexity(){
+//		readDocuments	-> {1=[2, 3, 6], 2=[3, 4, 5, 6], 3=[4, 5], 4=[1, 3, 5, 6], 5=[1], 6=[1, 2, 5]}
+//		weight			-> {1=0.3333333333333333, 2=0.25, 3=0.5, 4=0.25, 5=1.0, 6=0.3333333333333333}
+
+		readDocuments.keySet().forEach(k -> {
+			int n = readDocuments.get(k).size();
+			double w = weight.get(k);
+			double pow = -1 * ((w * (Math.log(2) * w)) * n);
+//			double result = Math.pow(2, pow);
+			System.out.println(pow);
+		});
+
+		return 0;
+	}
 	
 	/**
 	 * Returns true if the perplexity converges (hence, terminate the PageRank algorithm).
