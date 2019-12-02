@@ -4,6 +4,9 @@
 import java.util.*;
 import java.io.*;
 import java.math.*;
+import java.util.Map.Entry;
+import java.util.stream.IntStream;
+import java.util.stream.Collectors.*;
 
 /**
  * This class implements PageRank algorithm on simple graph structure.
@@ -29,6 +32,7 @@ public class PageRanker {
 	private double curPer = 0.0;
 	private double prevPer = 0.0;
 	private int countPer = 0;
+	private HashSet<Integer> hs = new HashSet<Integer>();
 
 	private List<Double> perplexity = new ArrayList<Double>();
 
@@ -46,11 +50,14 @@ public class PageRanker {
 				int firstElem = Integer.parseInt(splitLine[0]);
 
 //				Find P
-//				for(int i=0; i<splitLine.length; i++) {
-//					int v = Integer.parseInt(splitLine[i]);
-//					if(!P.contains(v)) P.add(v);
-//				}
-				P.add(firstElem);
+//				P.add(firstElem);
+				IntStream
+						.range(0, splitLine.length)
+						.forEach(i -> {
+							int v = Integer.parseInt(splitLine[i]);
+							P.add(v);
+						});
+
 
 				if (splitLine.length == 1) S.add(firstElem);
 
@@ -72,7 +79,10 @@ public class PageRanker {
 				}
 			}
 
-//			System.out.println(P.size());
+			hs.addAll(P);
+			P.clear();
+			P.addAll(hs);
+
 			reader.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -111,21 +121,18 @@ public class PageRanker {
 	 * Returns false otherwise (and PageRank algorithm continue to update the page scores).
 	 */
 	public boolean isConverge(){
-		int cPer = (int) curPer;
-		int pPer = (int) prevPer;
-		System.out.println(cPer);
+		int cPer = (int) curPer % 10;
+		int pPer = (int) prevPer % 10;
 
-		countPer++;
-		if(countPer > 4) return true;
+		if (cPer == pPer) {
+			countPer += 1;
+		} else {
+			countPer = 0;
+			return false;
+		}
+
+		if (countPer == 3) return true;
 		return false;
-
-//		if ((int) curPer == (int) prevPer) {
-//			countPer += 1;
-//		} else {
-//			return false;
-//		}
-//		if (countPer == 4) return true;
-//		return false;
 	}
 
 	/**
@@ -162,11 +169,11 @@ public class PageRanker {
 		// M(p) is the set of pages that link to page p
 		// L(q) is the number of out-links from page q
 		// d is the PageRank damping/teleportation factor; use
-
+		List<Double> listPer = new ArrayList<Double>();
 		while(!isConverge()) {
 			double N = P.size();
 			HashMap<Integer, Double> newPR = new HashMap<Integer, Double>();
-			double e = (1-d)/N;					// -> 0.025000000000000005
+			double e = (1-d)/N;
 
 			double sinkPR = 0.0;
 			for(int i=0; i<S.size(); i++) {
@@ -175,12 +182,16 @@ public class PageRanker {
 			}
 
 			for(int i=0; i<P.size(); i++) {
-				int p = P.get(i);				// -> 1, 2, 3, 4, 5, 6
+				int p = P.get(i);
 				double cal = e + d * (sinkPR / N);
-				List<Integer> lm = new ArrayList<Integer>(M.get(p)); // -> 1 / [4, 5, 6]
-				for(int j=0; j<lm.size(); j++) {
-					int q = lm.get(j);	// -> 4, 5, 6
-					cal += d * PR.get(q) / L.get(q).size();
+				if(M.containsKey(p)) {
+					List<Integer> lm = new ArrayList<Integer>(M.get(p));
+					for(int j=0; j<lm.size(); j++) {
+						int q = lm.get(j);
+						if(PR.containsKey(q)) {
+							cal += d * PR.get(q) / L.get(q).size();
+						}
+					}
 				}
 
 				newPR.put(p, cal);
@@ -194,22 +205,60 @@ public class PageRanker {
 			prevPer = curPer;
 			curPer = per;
 
-			System.out.println(per);
+			listPer.add(per);
+		}
+
+		try {
+			FileWriter fileWriter = new FileWriter(prOutFilename);
+			PrintWriter printWriter = new PrintWriter(fileWriter);
+			PR.keySet().forEach(k -> {
+				printWriter.print(k + " " + PR.get(k) + "\n");
+			});
+			printWriter.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		try {
+			FileWriter fileWriter = new FileWriter(perplexityOutFilename);
+			PrintWriter printWriter = new PrintWriter(fileWriter);
+			for(int i=0; i<listPer.size(); i++) {
+				printWriter.print(listPer.get(i) + "\n");
+			}
+			printWriter.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
-
 
 	/**
 	 * Return the top K page IDs, whose scores are highest.
 	 */
-	public Integer[] getRankedPages(int K){return null;}
+	public Integer[] getRankedPages(int K){
+		LinkedList<Map.Entry<Integer, Double>> list = new LinkedList<>(PR.entrySet());
+		Comparator<Map.Entry<Integer, Double>> comparator = Comparator.comparing(Map.Entry::getValue);
+		Collections.sort(list, comparator.reversed());
+
+		Integer[] rank = new Integer[K];
+
+		if(K <= list.size()) {
+			for(int i=0; i<K; i++) {
+				rank[i] = list.get(i).getKey();
+			}
+		} else {
+			for(int i=0; i<list.size(); i++) {
+				rank[i] = list.get(i).getKey();
+			}
+		}
+		return rank;
+	}
 
 	public static void main(String args[])
 	{
 		long startTime = System.currentTimeMillis();
 		PageRanker pageRanker =  new PageRanker();
-//		pageRanker.loadData("citeseer.dat");
-		pageRanker.loadData("../p3_testcase/test.dat");
+		pageRanker.loadData("citeseer.dat");
+//		pageRanker.loadData("../p3_testcase/test.dat");
 		pageRanker.initialize();
 		pageRanker.runPageRank("perplexity.out", "pr_scores.out");
 		Integer[] rankedPages = pageRanker.getRankedPages(100);
