@@ -149,7 +149,7 @@ public class PageRanker {
 					int l = outCommingLinks.get(v).size();
 					sum += pr / l;
 				}
-				double values = ((1-d)/N) + (d*sum);
+				double values = (1-d)/N + d*sum;
 				weight.put(k, values);
 			});
 			System.out.println(weight);
