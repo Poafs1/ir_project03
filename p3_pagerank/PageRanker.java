@@ -142,15 +142,21 @@ public class PageRanker {
 			});
 
 			P.forEach(p -> {
-				double newPR = (1 - d) / N;
-				newPR += d * obj.sinkPR / N;
+				var obj2 = new Object(){
+					Double newPR = 0.0;
+				};
+
+				obj2.newPR = (1 - d) / N;
+				obj2.newPR += d * obj.sinkPR / N;
 				M.keySet().forEach(q -> {
-					double cal = d * PR.get(q) / L.get(q);
-					newPR += cal;
+					double cal = d * PR.get(q) / L.get(q).size();
+					obj2.newPR += cal;
 				});
-				PR.put(p, newPR);
+				PR.put(p, obj2.newPR);
 			});
 		}
+
+		System.out.println(PR);
 
 
 
