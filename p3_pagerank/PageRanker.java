@@ -26,6 +26,9 @@ public class PageRanker {
 	private HashMap<Integer, List<Integer>> M = new HashMap<Integer, List<Integer>>();
 	private HashMap<Integer, List<Integer>> L = new HashMap<Integer, List<Integer>>();
 	private HashMap<Integer, Double> PR = new HashMap<Integer, Double>();
+	private double curPer = 0.0;
+	private double prevPer = 0.0;
+	private int countPer = 0;
 
 	private List<Double> perplexity = new ArrayList<Double>();
 
@@ -43,10 +46,11 @@ public class PageRanker {
 				int firstElem = Integer.parseInt(splitLine[0]);
 
 //				Find P
-				for(int i=0; i<splitLine.length; i++) {
-					int v = Integer.parseInt(splitLine[i]);
-					if(!P.contains(v)) P.add(v);
-				}
+//				for(int i=0; i<splitLine.length; i++) {
+//					int v = Integer.parseInt(splitLine[i]);
+//					if(!P.contains(v)) P.add(v);
+//				}
+				P.add(firstElem);
 
 				if (splitLine.length == 1) S.add(firstElem);
 
@@ -68,7 +72,7 @@ public class PageRanker {
 				}
 			}
 
-			System.out.println(P.size());
+//			System.out.println(P.size());
 			reader.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -98,7 +102,8 @@ public class PageRanker {
 			cal += PR.get(p) * (Math.log(PR.get(p)) / Math.log(2));
 		}
 		cal = -1 * cal;
-		return Math.pow(2, cal);
+		double per = Math.pow(2, cal);
+		return per;
 	}
 
 	/**
@@ -106,7 +111,21 @@ public class PageRanker {
 	 * Returns false otherwise (and PageRank algorithm continue to update the page scores).
 	 */
 	public boolean isConverge(){
+		int cPer = (int) curPer;
+		int pPer = (int) prevPer;
+		System.out.println(cPer);
+
+		countPer++;
+		if(countPer > 4) return true;
 		return false;
+
+//		if ((int) curPer == (int) prevPer) {
+//			countPer += 1;
+//		} else {
+//			return false;
+//		}
+//		if (countPer == 4) return true;
+//		return false;
 	}
 
 	/**
@@ -144,9 +163,7 @@ public class PageRanker {
 		// L(q) is the number of out-links from page q
 		// d is the PageRank damping/teleportation factor; use
 
-		for(int t=0; t<4; t++) {
-
-
+		while(!isConverge()) {
 			double N = P.size();
 			HashMap<Integer, Double> newPR = new HashMap<Integer, Double>();
 			double e = (1-d)/N;					// -> 0.025000000000000005
@@ -173,11 +190,12 @@ public class PageRanker {
 				PR.put(p, newPR.get(p));
 			});
 
+			double per = getPerplexity();
+			prevPer = curPer;
+			curPer = per;
 
-			System.out.println(getPerplexity());
+			System.out.println(per);
 		}
-
-//		getPerplexity();
 	}
 
 
@@ -188,15 +206,15 @@ public class PageRanker {
 
 	public static void main(String args[])
 	{
-	long startTime = System.currentTimeMillis();
+		long startTime = System.currentTimeMillis();
 		PageRanker pageRanker =  new PageRanker();
 //		pageRanker.loadData("citeseer.dat");
 		pageRanker.loadData("../p3_testcase/test.dat");
 		pageRanker.initialize();
 		pageRanker.runPageRank("perplexity.out", "pr_scores.out");
 		Integer[] rankedPages = pageRanker.getRankedPages(100);
-	double estimatedTime = (double)(System.currentTimeMillis() - startTime)/1000.0;
-		
+		double estimatedTime = (double)(System.currentTimeMillis() - startTime)/1000.0;
+
 		System.out.println("Top 100 Pages are:\n"+Arrays.toString(rankedPages));
 		System.out.println("Proccessing time: "+estimatedTime+" seconds");
 	}
