@@ -21,9 +21,11 @@ public class PageRanker {
 	 * You can assume that a page ID is an integer.
 	 */
 	private static final double d = 0.85;
-	private HashMap<Integer, List<Integer>> inCommingLinks = new HashMap<Integer, List<Integer>>();
-	private HashMap<Integer, List<Integer>> outCommingLinks = new HashMap<Integer, List<Integer>>();
-	private HashMap<Integer, Double> weight = new HashMap<Integer, Double>();
+	private List<Integer> P = new ArrayList<Integer>();
+	private List<Integer> S = new ArrayList<Integer>();
+	private HashMap<Integer, List<Integer>> M = new HashMap<Integer, List<Integer>>();
+	private HashMap<Integer, List<Integer>> L = new HashMap<Integer, List<Integer>>();
+	private HashMap<Integer, Double> PR = new HashMap<Integer, Double>();
 
 	private List<Double> perplexity = new ArrayList<Double>();
 
@@ -37,30 +39,28 @@ public class PageRanker {
 				line = reader.readLine();
 				String[] splitLine = line.split(" ");
 
-				int kv = Integer.parseInt(splitLine[0]);
+				int firstElem = Integer.parseInt(splitLine[0]);
+				P.add(firstElem);
 
-//				In Comming Links
-				List<Integer> inCommingValues = new ArrayList<Integer>();
-				for(int i=1; i<splitLine.length; i++) inCommingValues.add(Integer.parseInt(splitLine[i]));
-				inCommingLinks.put(kv, inCommingValues);
+				if (splitLine.length == 1) S.add(firstElem);
 
-//				Out Comming Links
-				for(int i=1; i<splitLine.length; i++) {
+				List<Integer> mv =  new ArrayList<Integer>();
+				for(int i=1; i<splitLine.length; i++) mv.add(Integer.parseInt(splitLine[i]));
+				M.put(firstElem, mv);
+
+				for(int i=0; i<splitLine.length; i++) {
 					int k = Integer.parseInt(splitLine[i]);
-					if(outCommingLinks.containsKey(k)) {
-						List<Integer> values = new ArrayList<Integer>(outCommingLinks.get(k));
-						values.add(kv);
-						outCommingLinks.put(k, values);
+					if(L.containsKey(k)) {
+						List<Integer> v = new ArrayList<Integer>(L.get(k));
+						v.add(firstElem);
+						L.put(k, v);
 					} else {
-						List<Integer> values = new ArrayList<Integer>();
-						values.add(kv);
-						outCommingLinks.put(k, values);
+						List<Integer> v = new ArrayList<Integer>();
+						v.add(firstElem);
+						L.put(k, v);
 					}
 				}
 			}
-
-//			System.out.println(inCommingLinks);		-> {1=[4, 5, 6], 2=[1, 6], 3=[1, 2, 4], 4=[2, 3], 5=[2, 3, 4, 6], 6=[1, 2, 4]}
-//			System.out.println(outCommingLinks);	-> {1=[2, 3, 6], 2=[3, 4, 5, 6], 3=[4, 5], 4=[1, 3, 5, 6], 5=[1], 6=[1, 2, 5]}
 
 			reader.close();
 		} catch (IOException e) {
@@ -74,13 +74,11 @@ public class PageRanker {
 	 * setting an initial weight to each page.
 	 */
 	public void initialize() {
-		double N = inCommingLinks.size();
-		inCommingLinks.keySet().forEach(k -> {
+		double N = P.size();
+		P.forEach(p -> {
 			double w = 1 / N;
-			weight.put(k, w);
+			PR.put(p, w);
 		});
-
-//		System.out.println(weight);		-> {1=0.16666666666666666, 2=0.16666666666666666
 	}
 	
 	/**
@@ -88,13 +86,7 @@ public class PageRanker {
 	 * of perplexity is given in the project specs.
 	 */
 	public double getPerplexity() {
-		double en = 0.0;
-		for(int k : weight.keySet()) {
-			double v = weight.get(k);
-			en += v * (Math.log(2) / v);
-		}
-
-		return en;
+		return 0;
 	}
 	
 	/**
@@ -134,31 +126,50 @@ public class PageRanker {
 	 * 
 	 */
 	public void runPageRank(String perplexityOutFilename, String prOutFilename){
-//		d -> 0.85
+	// P is the set of all pages; |P| = N
+	// S is the set of sink nodes, i.e., pages that have no out links
+	// M(p) is the set of pages that link to page p
+	// L(q) is the number of out-links from page q
+	// d is the PageRank damping/teleportation factor; use
+		double N = P.size();
+		for(int i=0; i<1; i++) {
+			var obj = new Object(){
+				Double sinkPR = 0.0;
+			};
 
-		double N = inCommingLinks.size();
-//		test loop for 10 times
-		for(int t = 0; t < 10; t++) {
-			inCommingLinks.keySet().forEach(k -> {
-//			1=[4, 5, 6]
-				List<Integer> links = new ArrayList<Integer>(inCommingLinks.get(k));
-				double sum = 0.0;
-				for(int i=0; i<links.size(); i++) {
-					int v = links.get(i);		// -> 4, 5, 6
-					double pr = weight.get(v);	// -> weight of 4
-					int l = outCommingLinks.get(v).size();
-					sum += pr / l;
-				}
-				double values = (1-d)/N + d*sum;
-				weight.put(k, values);
+			S.forEach(p -> {
+				obj.sinkPR += PR.get(p);
 			});
-			System.out.println(weight);
+
+			P.forEach(p -> {
+				double newPR = (1 - d) / N;
+				newPR += d * obj.sinkPR / N;
+				M.keySet().forEach(q -> {
+					double cal = d * PR.get(q) / L.get(q);
+					newPR += cal;
+				});
+				PR.put(p, newPR);
+			});
 		}
 
 
-////		update perplexity
-//		double per = getPerplexity();
-//		perplexity.add(per);
+
+//		double N = inCommingLinks.size();
+//		for(int t = 0; t < 10; t++) {
+//			inCommingLinks.keySet().forEach(k -> {
+//				List<Integer> links = new ArrayList<Integer>(inCommingLinks.get(k));
+//				double sum = 0.0;
+//				for(int i=0; i<links.size(); i++) {
+//					int v = links.get(i);		// -> 4, 5, 6
+//					double pr = weight.get(v);	// -> weight of 4
+//					int l = outCommingLinks.get(v).size();
+//					sum += pr / l;
+//				}
+//				double values = (1-d)/N + d*sum;
+//				weight.put(k, values);
+//			});
+//			System.out.println(weight);
+//		}
 	}
 	
 	
