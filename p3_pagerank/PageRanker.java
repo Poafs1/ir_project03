@@ -20,8 +20,12 @@ public class PageRanker {
 	 * Where pid_1, pid_2, ..., pid_n are the page IDs of the page having links to page pid_1. 
 	 * You can assume that a page ID is an integer.
 	 */
-	private HashMap<Integer, List<Integer>> readDocuments = new HashMap<Integer, List<Integer>>();
+	private static final double d = 0.85;
+	private HashMap<Integer, List<Integer>> inCommingLinks = new HashMap<Integer, List<Integer>>();
+	private HashMap<Integer, List<Integer>> outCommingLinks = new HashMap<Integer, List<Integer>>();
 	private HashMap<Integer, Double> weight = new HashMap<Integer, Double>();
+
+	private List<Double> perplexity = new ArrayList<Double>();
 
 	public void loadData(String inputLinkFilename){
 		BufferedReader reader;
@@ -33,21 +37,30 @@ public class PageRanker {
 				line = reader.readLine();
 				String[] splitLine = line.split(" ");
 
-				int v = Integer.parseInt(splitLine[0]);
+				int kv = Integer.parseInt(splitLine[0]);
 
+//				In Comming Links
+				List<Integer> inCommingValues = new ArrayList<Integer>();
+				for(int i=1; i<splitLine.length; i++) inCommingValues.add(Integer.parseInt(splitLine[i]));
+				inCommingLinks.put(kv, inCommingValues);
+
+//				Out Comming Links
 				for(int i=1; i<splitLine.length; i++) {
 					int k = Integer.parseInt(splitLine[i]);
-					if(readDocuments.containsKey(k)) {
-						List<Integer> values = new ArrayList<Integer>(readDocuments.get(k));
-						values.add(v);
-						readDocuments.put(k, values);
+					if(outCommingLinks.containsKey(k)) {
+						List<Integer> values = new ArrayList<Integer>(outCommingLinks.get(k));
+						values.add(kv);
+						outCommingLinks.put(k, values);
 					} else {
 						List<Integer> values = new ArrayList<Integer>();
-						values.add(v);
-						readDocuments.put(k, values);
+						values.add(kv);
+						outCommingLinks.put(k, values);
 					}
 				}
 			}
+
+//			System.out.println(inCommingLinks);		-> {1=[4, 5, 6], 2=[1, 6], 3=[1, 2, 4], 4=[2, 3], 5=[2, 3, 4, 6], 6=[1, 2, 4]}
+//			System.out.println(outCommingLinks);	-> {1=[2, 3, 6], 2=[3, 4, 5, 6], 3=[4, 5], 4=[1, 3, 5, 6], 5=[1], 6=[1, 2, 5]}
 
 			reader.close();
 		} catch (IOException e) {
@@ -60,49 +73,37 @@ public class PageRanker {
 	 * This method initialize the parameters for the PageRank algorithm including
 	 * setting an initial weight to each page.
 	 */
-	public void initialize(){
-		readDocuments.keySet().forEach(k -> {
-			double n = readDocuments.get(k).size();
-			double w = 1 / Math.abs(n);
+	public void initialize() {
+		double N = inCommingLinks.size();
+		inCommingLinks.keySet().forEach(k -> {
+			double w = 1 / N;
 			weight.put(k, w);
 		});
 
-		getPerplexity();
+//		System.out.println(weight);		-> {1=0.16666666666666666, 2=0.16666666666666666
 	}
 	
 	/**
 	 * Computes the perplexity of the current state of the graph. The definition
 	 * of perplexity is given in the project specs.
 	 */
-	public double getPerplexity(){
-//		readDocuments	-> {1=[2, 3, 6], 2=[3, 4, 5, 6], 3=[4, 5], 4=[1, 3, 5, 6], 5=[1], 6=[1, 2, 5]}
-//		weight			-> {1=0.3333333333333333, 2=0.25, 3=0.5, 4=0.25, 5=1.0, 6=0.3333333333333333}
-
-		double pow = 0;
-		for(int i=0; i<readDocuments.keySet().length; i++) {
-			int n = readDocuments.get(k).size();
+	public double getPerplexity() {
+		double en = 0.0;
+		for(int k : weight.keySet()) {
+			double v = weight.get(k);
+			en += v * (Math.log(2) / v);
 		}
 
-//		double pow = 0;
-//		readDocuments.keySet().forEach(k -> {
-//			int n = readDocuments.get(k).size();
-//			double w = weight.get(k);
-//			double p = w * (Math.log(2) * w);
-//			pow += p;
-////			double pow = -1 * ((w * (Math.log(2) * w)) * n);
-////			double result = Math.pow(2, pow);
-//		});
-//
-//		double result = Math.pow(2, -1*pow);
-//		System.out.println(result);
-		return 0;
+		return en;
 	}
 	
 	/**
 	 * Returns true if the perplexity converges (hence, terminate the PageRank algorithm).
 	 * Returns false otherwise (and PageRank algorithm continue to update the page scores). 
 	 */
-	public boolean isConverge(){return false;}
+	public boolean isConverge(){
+		return false;
+	}
 	
 	/**
 	 * The main method of PageRank algorithm. 
@@ -132,7 +133,33 @@ public class PageRanker {
 	 * Where, for example, 0.1235 is the PageRank score of page 1.
 	 * 
 	 */
-	public void runPageRank(String perplexityOutFilename, String prOutFilename){}
+	public void runPageRank(String perplexityOutFilename, String prOutFilename){
+//		d -> 0.85
+
+		double N = inCommingLinks.size();
+//		test loop for 10 times
+		for(int t = 0; t < 10; t++) {
+			inCommingLinks.keySet().forEach(k -> {
+//			1=[4, 5, 6]
+				List<Integer> links = new ArrayList<Integer>(inCommingLinks.get(k));
+				double sum = 0.0;
+				for(int i=0; i<links.size(); i++) {
+					int v = links.get(i);		// -> 4, 5, 6
+					double pr = weight.get(v);	// -> weight of 4
+					int l = outCommingLinks.get(v).size();
+					sum += pr / l;
+				}
+				double values = ((1-d)/N) + (d*sum);
+				weight.put(k, values);
+			});
+			System.out.println(weight);
+		}
+
+
+////		update perplexity
+//		double per = getPerplexity();
+//		perplexity.add(per);
+	}
 	
 	
 	/**
